@@ -1,10 +1,13 @@
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import Optional
 import os
 
 class Settings(BaseSettings):
-    # Database
-    database_url: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/options_db")
+    # Database - Supabase compatible
+    database_url: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost/options_db")
+    supabase_url: Optional[str] = os.getenv("SUPABASE_URL")
+    supabase_key: Optional[str] = os.getenv("SUPABASE_ANON_KEY")
     
     # Redis
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -25,7 +28,6 @@ class Settings(BaseSettings):
     analysis_cache_ttl: int = 1800  # 30 minutes
     market_data_cache_ttl: int = 300  # 5 minutes
     
-    class Config:
-        env_file = ".env"
+    model_config = ConfigDict(env_file=".env")
 
 settings = Settings()
