@@ -123,7 +123,6 @@ NYSE_TICKERS = [
     ("DLR", "Digital Realty Trust Inc.", "NYSE"),
     
     # Additional Popular Trading Stocks
-    ("TSLA", "Tesla Inc.", "NASDAQ"),
     ("AMD", "Advanced Micro Devices Inc.", "NASDAQ"),
     ("INTC", "Intel Corporation", "NASDAQ"),
     ("CRM", "Salesforce Inc.", "NYSE"),

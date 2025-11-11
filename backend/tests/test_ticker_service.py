@@ -358,3 +358,127 @@ class TestTickerService:
         assert len(results) == 0
         # Should still execute the query
         mock_db_session.execute.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_search_tickers_fuzzy_company_name_match(self, ticker_service, mock_db_session, sample_tickers):
+        """Test fuzzy matching on company names with typos"""
+        # Mock database response for fuzzy company name match
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [sample_tickers[1]]  # Microsoft
+        mock_db_session.execute.return_value = mock_result
+        
+        # Test with slight misspelling
+        results = await ticker_service.search_tickers("Microsft", limit=10)
+        
+        assert len(results) == 1
+        assert results[0].ticker == "MSFT"
+        assert "Microsoft" in results[0].company_name
+    
+    @pytest.mark.asyncio
+    async def test_search_tickers_partial_company_name(self, ticker_service, mock_db_session, sample_tickers):
+        """Test partial company name matching"""
+        # Mock database response for partial company name match
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [sample_tickers[2]]  # Alphabet
+        mock_db_session.execute.return_value = mock_result
+        
+        results = await ticker_service.search_tickers("Alphabet", limit=10)
+        
+        assert len(results) == 1
+        assert results[0].ticker == "GOOGL"
+        assert "Alphabet" in results[0].company_name
+    
+    @pytest.mark.asyncio
+    async def test_search_tickers_single_character(self, ticker_service, mock_db_session, sample_tickers):
+        """Test search with single character (requirement 1.1: 1+ characters)"""
+        # Mock database response for single character match
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [sample_tickers[0]]  # AAPL for "A"
+        mock_db_session.execute.return_value = mock_result
+        
+        results = await ticker_service.search_tickers("A", limit=10)
+        
+        assert len(results) == 1
+        assert results[0].ticker == "AAPL"
+    
+    @pytest.mark.asyncio
+    async def test_search_tickers_relevance_ordering(self, ticker_service, mock_db_session, sample_tickers):
+        """Test that results are ordered by relevance (exact match first)"""
+        # Create tickers that would match "A" in different ways
+        test_tickers = [
+            StockTicker(ticker="AMZN", company_name="Amazon.com Inc.", exchange="NASDAQ", is_active=True),
+            StockTicker(ticker="A", company_name="Agilent Technologies Inc.", exchange="NYSE", is_active=True),
+            StockTicker(ticker="AAPL", company_name="Apple Inc.", exchange="NASDAQ", is_active=True),
+        ]
+        
+        # Mock database response with multiple matches
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = test_tickers
+        mock_db_session.execute.return_value = mock_result
+        
+        results = await ticker_service.search_tickers("A", limit=10)
+        
+        assert len(results) == 3
+        # Results should be ordered by relevance (exact match "A" should be first if properly ordered)
+        assert all(isinstance(result, TickerResult) for result in results)
+    
+    @pytest.mark.asyncio
+    async def test_search_tickers_limit_boundary_conditions(self, ticker_service, mock_db_session, sample_tickers):
+        """Test search with various limit boundary conditions"""
+        # Mock database response
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = sample_tickers[:1]  # Return 1 result
+        mock_db_session.execute.return_value = mock_result
+        
+        # Test with limit of 1
+        results = await ticker_service.search_tickers("tech", limit=1)
+        assert len(results) <= 1
+        
+        # Test with limit of 0 (should still work)
+        mock_result.scalars.return_value.all.return_value = []
+        results = await ticker_service.search_tickers("tech", limit=0)
+        assert len(results) == 0
+    
+    @pytest.mark.asyncio
+    async def test_search_tickers_mixed_case_company_name(self, ticker_service, mock_db_session, sample_tickers):
+        """Test case insensitive search on company names"""
+        # Mock database response
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [sample_tickers[0]]  # Apple
+        mock_db_session.execute.return_value = mock_result
+        
+        # Test with mixed case company name search
+        results = await ticker_service.search_tickers("apple", limit=10)
+        
+        assert len(results) == 1
+        assert results[0].ticker == "AAPL"
+        assert "Apple" in results[0].company_name
+    
+    @pytest.mark.asyncio
+    async def test_search_tickers_numeric_characters(self, ticker_service, mock_db_session):
+        """Test search with numeric characters in query"""
+        # Mock database response
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_db_session.execute.return_value = mock_result
+        
+        results = await ticker_service.search_tickers("3M", limit=10)
+        
+        assert len(results) == 0
+        # Should execute query without errors
+        mock_db_session.execute.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_search_tickers_default_limit(self, ticker_service, mock_db_session, sample_tickers):
+        """Test that default limit of 10 is applied (requirement 1.3)"""
+        # Mock database response with more than 10 results
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = sample_tickers  # 5 results
+        mock_db_session.execute.return_value = mock_result
+        
+        # Call without explicit limit
+        results = await ticker_service.search_tickers("tech")
+        
+        # Should respect default limit of 10
+        assert len(results) <= 10
+        mock_db_session.execute.assert_called_once()

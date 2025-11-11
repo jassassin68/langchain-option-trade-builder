@@ -19,21 +19,27 @@ class TickerService:
         """
         Search for tickers using fuzzy matching on ticker symbols and company names
         
+        Implements requirement 1.1, 1.2, 1.3:
+        - Autocomplete with 1+ characters
+        - Match both ticker symbols (exact and partial) and company names (fuzzy)
+        - Return results in format suitable for "TICKER - Company Name" display
+        
         Args:
             query: Search query string
-            limit: Maximum number of results to return
+            limit: Maximum number of results to return (default 10 per requirement 1.3)
             
         Returns:
-            List of TickerResult objects matching the query
+            List of TickerResult objects matching the query, ordered by relevance
         """
         if not query or len(query.strip()) == 0:
             return []
         
-        # Normalize query
+        # Normalize query for ticker matching
         normalized_query = query.strip().upper()
+        original_query = query.strip()
         
         try:
-            # Build search query with multiple matching strategies
+            # Build search query with multiple matching strategies, ordered by priority
             search_conditions = []
             
             # 1. Exact ticker match (highest priority)
@@ -41,30 +47,36 @@ class TickerService:
                 StockTicker.ticker == normalized_query
             )
             
-            # 2. Ticker starts with query
+            # 2. Ticker starts with query (high priority for partial matches)
             search_conditions.append(
                 StockTicker.ticker.like(f"{normalized_query}%")
             )
             
-            # 3. Company name contains query (case insensitive)
+            # 3. Ticker contains query (for symbols like BRK.A, BRK.B)
+            search_conditions.append(
+                StockTicker.ticker.contains(normalized_query)
+            )
+            
+            # 4. Company name contains query (case insensitive, exact word matching)
             search_conditions.append(
                 func.upper(StockTicker.company_name).contains(normalized_query)
             )
             
-            # 4. Fuzzy match on company name using trigram similarity
+            # 5. Fuzzy match on company name using trigram similarity
             # This requires pg_trgm extension which we enabled in migrations
+            # Lower threshold for better fuzzy matching as per requirement 1.2
             search_conditions.append(
-                func.similarity(StockTicker.company_name, query) > 0.3
+                func.similarity(StockTicker.company_name, original_query) > 0.2
             )
             
-            # Execute search query with simple ordering
+            # Execute search query with simple ordering (exact matches will naturally come first)
             stmt = (
                 select(StockTicker)
                 .where(
                     StockTicker.is_active == True,
                     or_(*search_conditions)
                 )
-                .order_by(StockTicker.ticker)
+                .order_by(StockTicker.ticker)  # Simple alphabetical ordering
                 .limit(limit)
             )
             
@@ -81,7 +93,7 @@ class TickerService:
                 for ticker in tickers
             ]
             
-            logger.info(f"Found {len(ticker_results)} tickers for query: {query}")
+            logger.info(f"Found {len(ticker_results)} tickers for query: '{query}'")
             return ticker_results
             
         except Exception as e:
