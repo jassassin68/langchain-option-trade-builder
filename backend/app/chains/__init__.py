@@ -11,29 +11,29 @@ evaluation workflow:
 - OptionsEvaluationAgent: Orchestrates the complete workflow
 """
 
-from backend.app.chains.technical_analysis_chain import (
+from app.chains.technical_analysis_chain import (
     TechnicalAnalysisChain,
     TechnicalAnalysisResult
 )
-from backend.app.chains.fundamental_screening_chain import (
+from app.chains.fundamental_screening_chain import (
     FundamentalScreeningChain,
     FundamentalScreeningResult
 )
-from backend.app.chains.options_analysis_chain import (
+from app.chains.options_analysis_chain import (
     OptionsAnalysisChain,
     OptionsAnalysisResult
 )
-from backend.app.chains.strategy_selection_chain import (
+from app.chains.strategy_selection_chain import (
     StrategySelectionChain,
     StrategyRecommendation
 )
-from backend.app.chains.risk_assessment_chain import (
+from app.chains.risk_assessment_chain import (
     RiskAssessmentChain,
     RiskAssessmentResult,
     RiskMetrics,
     ContractDetail
 )
-from backend.app.chains.options_evaluation_agent import (
+from app.chains.options_evaluation_agent import (
     OptionsEvaluationAgent
 )
 
