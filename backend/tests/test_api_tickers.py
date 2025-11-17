@@ -34,7 +34,7 @@ class TestTickerSearchAPI:
             TickerResult(ticker="GOOGL", company_name="Alphabet Inc.", exchange="NASDAQ")
         ]
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_success(self, mock_ticker_service_class, sample_ticker_results):
         """Test successful ticker search"""
         # Mock the service
@@ -52,7 +52,7 @@ class TestTickerSearchAPI:
         assert len(data["results"]) == 3
         assert data["results"][0]["ticker"] == "AAPL"
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_single_result(self, mock_ticker_service_class, sample_ticker_results):
         """Test search returning single result"""
         # Mock the service
@@ -68,7 +68,7 @@ class TestTickerSearchAPI:
         assert data["results"][0]["ticker"] == "AAPL"
         assert data["results"][0]["company_name"] == "Apple Inc."
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_no_results(self, mock_ticker_service_class):
         """Test search with no matching results"""
         # Mock the service
@@ -95,7 +95,7 @@ class TestTickerSearchAPI:
         
         assert response.status_code == 422  # Validation error (min_length=1)
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_with_limit(self, mock_ticker_service_class, sample_ticker_results):
         """Test search with custom limit parameter"""
         # Mock the service
@@ -128,7 +128,7 @@ class TestTickerSearchAPI:
         
         assert response.status_code == 422  # Validation error
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_case_insensitive(self, mock_ticker_service_class, sample_ticker_results):
         """Test case insensitive search"""
         # Mock the service
@@ -143,7 +143,7 @@ class TestTickerSearchAPI:
         assert data["count"] == 1
         assert data["results"][0]["ticker"] == "AAPL"
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_whitespace_trimmed(self, mock_ticker_service_class, sample_ticker_results):
         """Test that whitespace is trimmed from query"""
         # Mock the service
@@ -157,7 +157,7 @@ class TestTickerSearchAPI:
         data = response.json()
         assert data["count"] == 1
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_service_error(self, mock_ticker_service_class):
         """Test handling of service errors"""
         # Mock the service to raise an exception
@@ -171,7 +171,7 @@ class TestTickerSearchAPI:
         data = response.json()
         assert "detail" in data
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_response_format(self, mock_ticker_service_class, sample_ticker_results):
         """Test response format matches TickerSearchResponse model"""
         # Mock the service
@@ -196,7 +196,7 @@ class TestTickerSearchAPI:
             assert "company_name" in result
             assert "exchange" in result
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_single_character(self, mock_ticker_service_class, sample_ticker_results):
         """Test search with single character (requirement 1.1)"""
         # Mock the service
@@ -210,7 +210,7 @@ class TestTickerSearchAPI:
         data = response.json()
         assert data["count"] >= 0
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_special_characters(self, mock_ticker_service_class):
         """Test search with special characters"""
         # Mock the service
@@ -231,7 +231,7 @@ class TestTickerSearchAPI:
         
         assert response.status_code == 422  # Validation error (max_length=50)
     
-    @patch('backend.app.api.v1.tickers.TickerService')
+    @patch('app.api.v1.tickers.TickerService')
     def test_search_tickers_default_limit(self, mock_ticker_service_class, sample_ticker_results):
         """Test that default limit of 10 is applied (requirement 1.3)"""
         # Mock the service

@@ -12,10 +12,10 @@ Implements requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6:
 
 import logging
 from typing import Dict, Any, Optional, List
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain.chains import LLMChain
-from langchain.output_parsers import PydanticOutputParser
+
+from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class StrategySelectionChain:
         self.output_parser = PydanticOutputParser(pydantic_object=StrategyRecommendation)
         self.chain = self._create_chain()
     
-    def _create_chain(self) -> LLMChain:
+    def _create_chain(self):
         """Create the LangChain chain with prompt template"""
         
         prompt_template = """You are an expert options strategist selecting the optimal trading strategy based on market conditions.
@@ -115,7 +115,7 @@ Be decisive and clear in your strategy recommendation. Focus on risk-adjusted re
             partial_variables={"format_instructions": self.output_parser.get_format_instructions()}
         )
         
-        return LLMChain(llm=self.llm, prompt=prompt)
+        return prompt | self.llm | self.output_parser
     
     async def evaluate(self, ticker: str, analysis_context: Dict[str, Any]) -> StrategyRecommendation:
         """
@@ -178,10 +178,7 @@ Be decisive and clear in your strategy recommendation. Focus on risk-adjusted re
             }
             
             # Run the chain
-            result = await self.chain.arun(**input_data)
-            
-            # Parse the output
-            parsed_result = self.output_parser.parse(result)
+            parsed_result = await self.chain.ainvoke(input_data)
             
             logger.info(f"Strategy selection complete for {ticker}: strategy={parsed_result.strategy_name}, passed={parsed_result.passed}")
             

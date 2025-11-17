@@ -11,10 +11,10 @@ Implements requirements 4.1, 4.2, 4.3, 4.4, 4.5:
 
 import logging
 from typing import Dict, Any, Optional, List
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain.chains import LLMChain
-from langchain.output_parsers import PydanticOutputParser
+
+from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class OptionsAnalysisChain:
         self.output_parser = PydanticOutputParser(pydantic_object=OptionsAnalysisResult)
         self.chain = self._create_chain()
     
-    def _create_chain(self) -> LLMChain:
+    def _create_chain(self):
         """Create the LangChain chain with prompt template"""
         
         prompt_template = """You are an expert options trader evaluating options contract quality for trading opportunities.
@@ -97,7 +97,7 @@ Be thorough but concise in your reasoning. Focus on tradability and risk managem
             partial_variables={"format_instructions": self.output_parser.get_format_instructions()}
         )
         
-        return LLMChain(llm=self.llm, prompt=prompt)
+        return prompt | self.llm | self.output_parser
     
     async def evaluate(self, ticker: str, options_data: Dict[str, Any]) -> OptionsAnalysisResult:
         """
@@ -140,10 +140,7 @@ Be thorough but concise in your reasoning. Focus on tradability and risk managem
             }
             
             # Run the chain
-            result = await self.chain.arun(**input_data)
-            
-            # Parse the output
-            parsed_result = self.output_parser.parse(result)
+            parsed_result = await self.chain.ainvoke(input_data)
             
             logger.info(f"Options analysis complete for {ticker}: passed={parsed_result.passed}, quality_contracts={len(quality_contracts)}")
             

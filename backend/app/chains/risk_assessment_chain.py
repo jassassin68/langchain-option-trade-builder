@@ -12,10 +12,10 @@ Implements requirements 6.1, 6.2, 6.3, 6.4, 6.5:
 import logging
 from typing import Dict, Any, Optional, List, Union
 from datetime import date
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain.chains import LLMChain
-from langchain.output_parsers import PydanticOutputParser
+
+from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 import math
 
@@ -74,7 +74,7 @@ class RiskAssessmentChain:
         self.output_parser = PydanticOutputParser(pydantic_object=RiskAssessmentResult)
         self.chain = self._create_chain()
     
-    def _create_chain(self) -> LLMChain:
+    def _create_chain(self):
         """Create the LangChain chain with prompt template"""
         
         prompt_template = """You are an expert risk analyst providing final trading recommendations for options strategies.
@@ -130,7 +130,7 @@ Be thorough in risk calculations and conservative in recommendations. Focus on c
             partial_variables={"format_instructions": self.output_parser.get_format_instructions()}
         )
         
-        return LLMChain(llm=self.llm, prompt=prompt)
+        return prompt | self.llm | self.output_parser
     
     async def evaluate(self, ticker: str, strategy_context: Dict[str, Any]) -> RiskAssessmentResult:
         """
@@ -174,10 +174,7 @@ Be thorough in risk calculations and conservative in recommendations. Focus on c
             }
             
             # Run the chain
-            result = await self.chain.arun(**input_data)
-            
-            # Parse the output
-            parsed_result = self.output_parser.parse(result)
+            parsed_result = await self.chain.ainvoke(input_data)
             
             logger.info(f"Risk assessment complete for {ticker}: should_trade={parsed_result.should_trade}, confidence={parsed_result.confidence}")
             

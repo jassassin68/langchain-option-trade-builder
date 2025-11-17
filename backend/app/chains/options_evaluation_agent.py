@@ -14,14 +14,14 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from langchain_openai import ChatOpenAI
 
-from backend.app.chains.technical_analysis_chain import TechnicalAnalysisChain
-from backend.app.chains.fundamental_screening_chain import FundamentalScreeningChain
-from backend.app.chains.options_analysis_chain import OptionsAnalysisChain
-from backend.app.chains.strategy_selection_chain import StrategySelectionChain
-from backend.app.chains.risk_assessment_chain import RiskAssessmentChain
-from backend.app.services.market_data_service import MarketDataService, DataUnavailableError
-from backend.app.services.options_data_service import OptionsDataService, OptionsUnavailableError
-from backend.app.models.api import TradeRecommendation, ReasoningStep, Contract, RiskMetrics
+from app.chains.technical_analysis_chain import TechnicalAnalysisChain
+from app.chains.fundamental_screening_chain import FundamentalScreeningChain
+from app.chains.options_analysis_chain import OptionsAnalysisChain
+from app.chains.strategy_selection_chain import StrategySelectionChain
+from app.chains.risk_assessment_chain import RiskAssessmentChain
+from app.services.market_data_service import MarketDataService, DataUnavailableError
+from app.services.options_data_service import OptionsDataService, OptionsUnavailableError
+from app.models.api import TradeRecommendation, ReasoningStep, Contract, RiskMetrics
 
 logger = logging.getLogger(__name__)
 
