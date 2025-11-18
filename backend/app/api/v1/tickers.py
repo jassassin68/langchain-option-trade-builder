@@ -45,13 +45,13 @@ async def search_tickers(
         min_length=1,
         max_length=50,
         description="Search query (minimum 1 character)",
-        example="AAPL"
+        examples=["AAPL", "Apple", "MSFT"]
     )],
     limit: Annotated[int, Query(
         ge=1,
         le=50,
         description="Maximum number of results to return (default 10)",
-        example=10
+        examples=[10, 5, 20]
     )] = 10,
     db: AsyncSession = Depends(get_db)
 ) -> TickerSearchResponse:

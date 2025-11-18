@@ -12,7 +12,7 @@ Tests chain execution with various market conditions including:
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from backend.app.chains.technical_analysis_chain import (
+from app.chains.technical_analysis_chain import (
     TechnicalAnalysisChain,
     TechnicalAnalysisResult
 )
