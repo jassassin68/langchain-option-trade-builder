@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TickerSearch from '../TickerSearch';
 import { api } from '@/lib/api';
@@ -55,7 +55,10 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'AAP');
+    
+    await act(async () => {
+      await user.type(input, 'AAP');
+    });
 
     // Wait for debounce delay
     await waitFor(() => {
@@ -68,7 +71,10 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'A');
+    
+    await act(async () => {
+      await user.type(input, 'A');
+    });
 
     await waitFor(() => {
       expect(screen.getByText('AAPL')).toBeInTheDocument();
@@ -81,13 +87,18 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'A');
+    
+    await act(async () => {
+      await user.type(input, 'A');
+    });
 
     await waitFor(() => {
       expect(screen.getByText('AAPL')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('AAPL'));
+    await act(async () => {
+      await user.click(screen.getByText('AAPL'));
+    });
     
     expect(input).toHaveValue('AAPL');
     expect(screen.getByRole('button', { name: 'Analyze Trade' })).not.toBeDisabled();
@@ -98,18 +109,26 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'A');
+    
+    await act(async () => {
+      await user.type(input, 'A');
+    });
 
     await waitFor(() => {
       expect(screen.getByText('AAPL')).toBeInTheDocument();
     });
 
-    // Navigate down with arrow key
-    await user.keyboard('{ArrowDown}');
-    await user.keyboard('{ArrowDown}');
-    await user.keyboard('{Enter}');
+    // Use fireEvent for keyboard navigation
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'ArrowDown', code: 'ArrowDown' });
+      fireEvent.keyDown(input, { key: 'ArrowDown', code: 'ArrowDown' });
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    });
 
-    expect(input).toHaveValue('GOOGL');
+    // Wait for the state update to complete
+    await waitFor(() => {
+      expect(input).toHaveValue('GOOGL');
+    });
   });
 
   it('closes dropdown on escape key', async () => {
@@ -117,13 +136,18 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'A');
+    
+    await act(async () => {
+      await user.type(input, 'A');
+    });
 
     await waitFor(() => {
       expect(screen.getByText('AAPL')).toBeInTheDocument();
     });
 
-    await user.keyboard('{Escape}');
+    await act(async () => {
+      await user.keyboard('{Escape}');
+    });
     
     expect(screen.queryByText('AAPL')).not.toBeInTheDocument();
   });
@@ -133,14 +157,22 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'A');
+    
+    await act(async () => {
+      await user.type(input, 'A');
+    });
 
     await waitFor(() => {
       expect(screen.getByText('AAPL')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('AAPL'));
-    await user.click(screen.getByRole('button', { name: 'Analyze Trade' }));
+    await act(async () => {
+      await user.click(screen.getByText('AAPL'));
+    });
+    
+    await act(async () => {
+      await user.click(screen.getByRole('button', { name: 'Analyze Trade' }));
+    });
 
     expect(mockOnAnalyze).toHaveBeenCalledWith('AAPL');
   });
@@ -150,14 +182,22 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'A');
+    
+    await act(async () => {
+      await user.type(input, 'A');
+    });
 
     await waitFor(() => {
       expect(screen.getByText('AAPL')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('AAPL'));
-    await user.keyboard('{Enter}');
+    await act(async () => {
+      await user.click(screen.getByText('AAPL'));
+    });
+    
+    await act(async () => {
+      await user.keyboard('{Enter}');
+    });
 
     expect(mockOnAnalyze).toHaveBeenCalledWith('AAPL');
   });
@@ -169,7 +209,10 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'A');
+    
+    await act(async () => {
+      await user.type(input, 'A');
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Failed to search tickers. Please try again.')).toBeInTheDocument();
@@ -181,7 +224,10 @@ describe('TickerSearch', () => {
     render(<TickerSearch onAnalyze={mockOnAnalyze} isLoading={false} />);
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'aapl');
+    
+    await act(async () => {
+      await user.type(input, 'aapl');
+    });
 
     expect(input).toHaveValue('AAPL');
   });
@@ -196,13 +242,18 @@ describe('TickerSearch', () => {
     );
     
     const input = screen.getByPlaceholderText('Enter stock ticker (e.g., AAPL)');
-    await user.type(input, 'A');
+    
+    await act(async () => {
+      await user.type(input, 'A');
+    });
 
     await waitFor(() => {
       expect(screen.getByText('AAPL')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByTestId('outside'));
+    await act(async () => {
+      await user.click(screen.getByTestId('outside'));
+    });
     
     expect(screen.queryByText('AAPL')).not.toBeInTheDocument();
   });
