@@ -5,8 +5,12 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Options Trade Evaluator',
-  description: 'AI-powered options trading analysis and recommendations',
+  title: 'Options Trade Evaluator - AI-Powered Trading Analysis',
+  description: 'Get comprehensive options trading analysis with AI-powered technical indicators, fundamental screening, and strategy recommendations for informed trading decisions.',
+  keywords: 'options trading, stock analysis, AI trading, technical analysis, fundamental analysis, trading strategies',
+  authors: [{ name: 'Options Trade Evaluator' }],
+  viewport: 'width=device-width, initial-scale=1',
+  robots: 'index, follow',
 }
 
 export default function RootLayout({
@@ -15,8 +19,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} h-full antialiased`}>
+        {children}
+      </body>
     </html>
   )
 }
