@@ -1,40 +1,66 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import TickerSearch from '@/components/TickerSearch';
 import AnalysisResult from '@/components/AnalysisResult';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { AnalysisLoadingSpinner } from '@/components/LoadingSpinner';
+import { AnalysisErrorMessage } from '@/components/ErrorMessage';
 import { TradeAnalysisResult } from '@/types';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<TradeAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | Error | ApiError | null>(null);
+  const [currentTicker, setCurrentTicker] = useState<string>('');
+  const [retryCount, setRetryCount] = useState(0);
 
-  const handleAnalyze = async (ticker: string) => {
+  const handleAnalyze = useCallback(async (ticker: string, isRetry: boolean = false) => {
     setIsLoading(true);
     setError(null);
+    setCurrentTicker(ticker);
+    
+    if (!isRetry) {
+      setRetryCount(0);
+    }
     
     try {
       const result = await api.analyzeTrade({ ticker });
       setAnalysisResult(result);
+      setRetryCount(0);
     } catch (err) {
       console.error('Analysis failed:', err);
-      setError('Failed to analyze the trade. Please try again.');
+      setError(err instanceof Error ? err : new Error('Failed to analyze the trade. Please try again.'));
+      
+      // Auto-retry for network errors (up to 2 times)
+      if (err instanceof ApiError && err.code === 'NETWORK_ERROR' && retryCount < 2) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          handleAnalyze(ticker, true);
+        }, 2000 * (retryCount + 1)); // Exponential backoff
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [retryCount]);
 
-  const handleReset = () => {
+  const handleRetry = useCallback(() => {
+    if (currentTicker) {
+      handleAnalyze(currentTicker, true);
+    }
+  }, [currentTicker, handleAnalyze]);
+
+  const handleReset = useCallback(() => {
     setAnalysisResult(null);
     setError(null);
-  };
+    setCurrentTicker('');
+    setRetryCount(0);
+  }, []);
 
-  const handleInputChange = () => {
+  const handleInputChange = useCallback(() => {
     setError(null);
-  };
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -55,7 +81,28 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {!analysisResult ? (
+          {isLoading ? (
+            /* Loading State */
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <AnalysisLoadingSpinner />
+              {retryCount > 0 && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600">
+                    Retry attempt {retryCount} of 2...
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : error ? (
+            /* Error State */
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <AnalysisErrorMessage 
+                error={error}
+                onRetry={handleRetry}
+                onReset={handleReset}
+              />
+            </div>
+          ) : !analysisResult ? (
             /* Search Interface */
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
               <div className="w-full max-w-2xl px-4 sm:px-0">
@@ -70,35 +117,6 @@ export default function Home() {
                 </div>
                 
                 <TickerSearch onAnalyze={handleAnalyze} isLoading={isLoading} onInputChange={handleInputChange} />
-                
-                {error && (
-                  <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-md mx-4 sm:mx-0">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <svg
-                          className="h-5 w-5 text-red-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                          />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-red-800">
-                          Analysis Error
-                        </h3>
-                        <p className="mt-1 text-sm text-red-700">{error}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           ) : (

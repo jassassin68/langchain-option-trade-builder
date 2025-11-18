@@ -215,7 +215,8 @@ describe('TickerSearch', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to search tickers. Please try again.')).toBeInTheDocument();
+      expect(screen.getByText('Error')).toBeInTheDocument();
+      expect(screen.getByText('API Error')).toBeInTheDocument();
     });
   });
 

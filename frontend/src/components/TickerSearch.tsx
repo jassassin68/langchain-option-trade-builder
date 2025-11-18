@@ -2,8 +2,9 @@
 
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { TickerResult } from '@/types';
+import ErrorMessage from './ErrorMessage';
 
 interface TickerSearchProps {
   onAnalyze: (ticker: string) => void;
@@ -17,7 +18,7 @@ export default function TickerSearch({ onAnalyze, isLoading, onInputChange }: Ti
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | Error | ApiError | null>(null);
   const [selectedTicker, setSelectedTicker] = useState<string>('');
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +45,7 @@ export default function TickerSearch({ onAnalyze, isLoading, onInputChange }: Ti
         setShowDropdown(response.results.length > 0);
         setSelectedIndex(-1);
       } catch (err) {
-        setError('Failed to search tickers. Please try again.');
+        setError(err instanceof Error ? err : new Error('Failed to search tickers. Please try again.'));
         setResults([]);
         setShowDropdown(false);
       } finally {
@@ -187,8 +188,21 @@ export default function TickerSearch({ onAnalyze, isLoading, onInputChange }: Ti
 
       {/* Error Message */}
       {error && (
-        <div className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          {error}
+        <div className="mt-2">
+          <ErrorMessage 
+            error={error}
+            onRetry={() => {
+              if (debouncedQuery.trim().length > 0) {
+                setError(null);
+                // Trigger search again by clearing and setting the query
+                const currentQuery = debouncedQuery;
+                setQuery('');
+                setTimeout(() => setQuery(currentQuery), 100);
+              }
+            }}
+            onDismiss={() => setError(null)}
+            variant="error"
+          />
         </div>
       )}
 
