@@ -7,8 +7,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "build:analyze": "ANALYZE=true npm run build",
+    "deploy:dev": "bash scripts/deploy-vercel.sh development",
+    "deploy:staging": "bash scripts/deploy-vercel.sh staging",
+    "deploy:prod": "bash scripts/deploy-vercel.sh production",
+    "build:test": "bash scripts/build-and-test.sh",
+    "verify:deployment": "bash scripts/verify-deployment.sh",
+    "test:deployment": "bash scripts/test-deployment.sh",
+    "monitor:deployment": "bash scripts/monitor-deployment.sh"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.8.4",

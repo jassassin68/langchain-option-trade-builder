@@ -1,0 +1,192 @@
+name: Frontend Deployment
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['frontend/**']
+  pull_request:
+    branches: [main]
+    paths: ['frontend/**']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+jobs:
+  test:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type checking
+        run: npm run type-check
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test -- --coverage --passWithNoTests
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./frontend/coverage
+          flags: frontend
+
+      - name: Test build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.example.com
+          NEXT_PUBLIC_APP_NAME: Options Trade Evaluator
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    defaults:
+      run:
+        working-directory: ./frontend
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Vercel (Staging)
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./frontend
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL }}
+          NEXT_PUBLIC_APP_NAME: Options Trade Evaluator (Staging)
+
+      - name: Verify deployment
+        run: |
+          sleep 30
+          bash scripts/verify-deployment.sh ${{ steps.deploy.outputs.preview-url }}
+
+  deploy-production:
+    name: Deploy to Production
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    defaults:
+      run:
+        working-directory: ./frontend
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Vercel (Production)
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./frontend
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          NEXT_PUBLIC_APP_NAME: Options Trade Evaluator
+
+      - name: Verify deployment
+        run: |
+          sleep 30
+          bash scripts/verify-deployment.sh ${{ steps.deploy.outputs.preview-url }}
+
+      - name: Create deployment notification
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: 'Frontend deployed successfully to production!'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=frontend/package.json
