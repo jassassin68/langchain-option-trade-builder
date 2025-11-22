@@ -71,7 +71,14 @@ class OptionsEvaluationAgent:
         """
         Evaluate a potential options trade through complete analysis workflow.
         
-        Implements requirement 7.1: Complete analysis within 5 seconds average
+        Implements automatic fallback logic when primary model fails.
+        
+        Implements requirements 3.1, 3.2, 3.3, 3.4, 3.5, 5.1, 5.2, 5.3, 5.4, 5.5,
+        7.1, 8.1, 8.2, 8.3, 8.4, 8.5:
+        - Complete analysis within 5 seconds average
+        - Automatic retry with fallback model on retryable errors
+        - Comprehensive logging of model usage and fallback events
+        - Graceful error handling when both models fail
         
         Args:
             ticker: Stock ticker symbol to analyze
@@ -80,7 +87,55 @@ class OptionsEvaluationAgent:
             TradeRecommendation with complete analysis results
         
         Raises:
-            Exception: If critical errors occur during evaluation
+            Exception: If both primary and fallback models fail
+        """
+        try:
+            # Attempt evaluation with primary model
+            result = await self._execute_evaluation_workflow(ticker)
+            logger.info(f"Analysis completed with primary model ({settings.primary_model})")
+            return result
+            
+        except Exception as primary_error:
+            # Check if error is retryable (rate limit, timeout, server error)
+            if self._is_retryable_error(primary_error):
+                logger.warning(f"Primary model failed for {ticker}: {str(primary_error)}")
+                logger.info(f"Retrying with fallback model ({settings.fallback_model})")
+                
+                # Switch to fallback LLM
+                self._switch_to_fallback()
+                
+                try:
+                    # Retry evaluation with fallback model
+                    result = await self._execute_evaluation_workflow(ticker)
+                    logger.info(f"Analysis completed with fallback model for {ticker}")
+                    return result
+                    
+                except Exception as fallback_error:
+                    # Both models failed
+                    logger.error(f"Fallback model also failed for {ticker}: {str(fallback_error)}")
+                    logger.error(f"Both primary and fallback models failed for {ticker}")
+                    raise Exception(
+                        f"Both primary and fallback models failed. "
+                        f"Primary ({settings.primary_model}): {str(primary_error)}, "
+                        f"Fallback ({settings.fallback_model}): {str(fallback_error)}"
+                    )
+            else:
+                # Non-retryable error, fail immediately
+                logger.error(f"Non-retryable error during evaluation for {ticker}: {str(primary_error)}")
+                raise
+    
+    async def _execute_evaluation_workflow(self, ticker: str) -> TradeRecommendation:
+        """
+        Execute the complete evaluation workflow.
+        
+        This method contains the actual evaluation logic that can be retried
+        with different LLM instances.
+        
+        Args:
+            ticker: Stock ticker symbol to analyze
+        
+        Returns:
+            TradeRecommendation with complete analysis results
         """
         start_time = time.time()
         reasoning_steps = []
