@@ -14,6 +14,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from langchain_openai import ChatOpenAI
 
+from app.chains.llm_factory import LLMFactory
 from app.chains.technical_analysis_chain import TechnicalAnalysisChain
 from app.chains.fundamental_screening_chain import FundamentalScreeningChain
 from app.chains.options_analysis_chain import OptionsAnalysisChain
@@ -22,6 +23,7 @@ from app.chains.risk_assessment_chain import RiskAssessmentChain
 from app.services.market_data_service import MarketDataService, DataUnavailableError
 from app.services.options_data_service import OptionsDataService, OptionsUnavailableError
 from app.models.api import TradeRecommendation, ReasoningStep, Contract, RiskMetrics
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -42,19 +44,21 @@ class OptionsEvaluationAgent:
     
     def __init__(self, llm: Optional[ChatOpenAI] = None):
         """
-        Initialize the options evaluation agent.
+        Initialize the options evaluation agent with OpenRouter LLM.
         
         Args:
-            llm: LangChain LLM instance (defaults to GPT-4)
+            llm: LangChain LLM instance (defaults to primary model via factory)
         """
-        self.llm = llm or ChatOpenAI(model="gpt-4", temperature=0)
+        # Use factory to create LLM instances
+        self.primary_llm = llm or LLMFactory.create_primary_llm()
+        self.fallback_llm = LLMFactory.create_fallback_llm()
         
-        # Initialize all chains
-        self.technical_chain = TechnicalAnalysisChain(self.llm)
-        self.fundamental_chain = FundamentalScreeningChain(self.llm)
-        self.options_chain = OptionsAnalysisChain(self.llm)
-        self.strategy_chain = StrategySelectionChain(self.llm)
-        self.risk_chain = RiskAssessmentChain(self.llm)
+        # Initialize all chains with primary LLM
+        self.technical_chain = TechnicalAnalysisChain(self.primary_llm)
+        self.fundamental_chain = FundamentalScreeningChain(self.primary_llm)
+        self.options_chain = OptionsAnalysisChain(self.primary_llm)
+        self.strategy_chain = StrategySelectionChain(self.primary_llm)
+        self.risk_chain = RiskAssessmentChain(self.primary_llm)
         
         # Initialize data services
         self.market_data_service = MarketDataService()
@@ -468,6 +472,67 @@ class OptionsEvaluationAgent:
             risk_metrics=None,
             reasoning_steps=reasoning_steps
         )
+    
+    def _switch_to_fallback(self):
+        """
+        Recreate all chains using fallback LLM.
+        
+        Called when primary model fails during chain execution.
+        Ensures all five chains use consistent LLM configuration.
+        
+        Implements requirements 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7:
+        - Recreate technical_chain with fallback LLM instance
+        - Recreate fundamental_chain with fallback LLM instance
+        - Recreate options_chain with fallback LLM instance
+        - Recreate strategy_chain with fallback LLM instance
+        - Recreate risk_chain with fallback LLM instance
+        """
+        logger.info("Switching all chains to fallback LLM")
+        
+        self.technical_chain = TechnicalAnalysisChain(self.fallback_llm)
+        self.fundamental_chain = FundamentalScreeningChain(self.fallback_llm)
+        self.options_chain = OptionsAnalysisChain(self.fallback_llm)
+        self.strategy_chain = StrategySelectionChain(self.fallback_llm)
+        self.risk_chain = RiskAssessmentChain(self.fallback_llm)
+    
+    def _is_retryable_error(self, error: Exception) -> bool:
+        """
+        Determine if an error is retryable with fallback model.
+        
+        Classifies errors into retryable (rate limit, timeout, 5xx, unavailable)
+        and non-retryable categories.
+        
+        Implements requirements 3.1, 3.2, 3.3, 3.4:
+        - Detect HTTP 429 (rate limit) errors
+        - Detect HTTP 5xx (server error) errors
+        - Detect timeout errors
+        - Detect model unavailable errors
+        
+        Args:
+            error: Exception from primary model execution
+        
+        Returns:
+            True if error should trigger fallback, False otherwise
+        """
+        error_str = str(error).lower()
+        
+        # Rate limit errors (HTTP 429)
+        if "rate limit" in error_str or "429" in error_str:
+            return True
+        
+        # Server errors (HTTP 5xx)
+        if any(code in error_str for code in ["500", "502", "503", "504"]):
+            return True
+        
+        # Timeout errors
+        if "timeout" in error_str or "timed out" in error_str:
+            return True
+        
+        # Model unavailable
+        if "unavailable" in error_str or "not found" in error_str:
+            return True
+        
+        return False
     
     def get_execution_times(self) -> Dict[str, float]:
         """
