@@ -92,14 +92,32 @@ class OptionsEvaluationAgent:
         try:
             # Attempt evaluation with primary model
             result = await self._execute_evaluation_workflow(ticker)
-            logger.info(f"Analysis completed with primary model ({settings.primary_model})")
+            # Log successful completion with primary model (Requirement 5.1)
+            logger.info(
+                f"Analysis completed with primary model for ticker={ticker}, "
+                f"model={settings.primary_model}, "
+                f"should_trade={result.should_trade}, "
+                f"confidence={result.confidence:.2f}"
+            )
             return result
             
         except Exception as primary_error:
             # Check if error is retryable (rate limit, timeout, server error)
             if self._is_retryable_error(primary_error):
-                logger.warning(f"Primary model failed for {ticker}: {str(primary_error)}")
-                logger.info(f"Retrying with fallback model ({settings.fallback_model})")
+                # Log primary model failure with error details (Requirement 5.2)
+                logger.warning(
+                    f"Primary model failed for ticker={ticker}, "
+                    f"model={settings.primary_model}, "
+                    f"error_type={type(primary_error).__name__}, "
+                    f"error_details={str(primary_error)}"
+                )
+                
+                # Log fallback activation (Requirement 5.3)
+                logger.info(
+                    f"Activating fallback model for ticker={ticker}, "
+                    f"fallback_model={settings.fallback_model}, "
+                    f"reason=primary_model_failure"
+                )
                 
                 # Switch to fallback LLM
                 self._switch_to_fallback()
@@ -107,13 +125,22 @@ class OptionsEvaluationAgent:
                 try:
                     # Retry evaluation with fallback model
                     result = await self._execute_evaluation_workflow(ticker)
-                    logger.info(f"Analysis completed with fallback model for {ticker}")
+                    # Log successful fallback completion (Requirement 5.4)
+                    logger.info(
+                        f"Analysis completed with fallback model for ticker={ticker}, "
+                        f"model={settings.fallback_model}, "
+                        f"should_trade={result.should_trade}, "
+                        f"confidence={result.confidence:.2f}"
+                    )
                     return result
                     
                 except Exception as fallback_error:
-                    # Both models failed
-                    logger.error(f"Fallback model also failed for {ticker}: {str(fallback_error)}")
-                    logger.error(f"Both primary and fallback models failed for {ticker}")
+                    # Log dual failure with details from both attempts (Requirement 5.5)
+                    logger.error(
+                        f"Both models failed for ticker={ticker}. "
+                        f"Primary model ({settings.primary_model}) error: {type(primary_error).__name__} - {str(primary_error)}. "
+                        f"Fallback model ({settings.fallback_model}) error: {type(fallback_error).__name__} - {str(fallback_error)}"
+                    )
                     raise Exception(
                         f"Both primary and fallback models failed. "
                         f"Primary ({settings.primary_model}): {str(primary_error)}, "
@@ -121,7 +148,12 @@ class OptionsEvaluationAgent:
                     )
             else:
                 # Non-retryable error, fail immediately
-                logger.error(f"Non-retryable error during evaluation for {ticker}: {str(primary_error)}")
+                logger.error(
+                    f"Non-retryable error during evaluation for ticker={ticker}, "
+                    f"model={settings.primary_model}, "
+                    f"error_type={type(primary_error).__name__}, "
+                    f"error_details={str(primary_error)}"
+                )
                 raise
     
     async def _execute_evaluation_workflow(self, ticker: str) -> TradeRecommendation:
