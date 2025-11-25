@@ -291,7 +291,7 @@ The application follows a microservices architecture with clear separation of co
 │                │  │                 │  │    Tradier     │
 └────────────────┘  └─────────────────┘  └────────────────┘
 ```
-![alt text](../images/Gemini_Generated_Image_x6k7ax6k7ax6k7ax.png)
+![alt text](../langchain-option-trade-builder/images/Gemini_Generated_Image_x6k7ax6k7ax6k7ax.png)
 
 **Component Responsibilities:**
 - **Frontend**: User interface, form validation, result visualization
