@@ -15,6 +15,19 @@ Options Trade Evaluator is an intelligent trading assistant that helps traders m
 
 **Target Users:** Options traders seeking data-driven insights and risk analysis before entering trades.
 
+## Architecture
+
+The application follows a microservices architecture with clear separation of concerns:
+![alt text](https://github.com/jassassin68/langchain-option-trade-builder/blob/main/images/Gemini_Generated_Image_x6k7ax6k7ax6k7ax.png)
+
+**Component Responsibilities:**
+- **Frontend**: User interface, form validation, result visualization
+- **Backend API**: Request handling, orchestration, error management
+- **LangChain Agent**: Sequential analysis workflow with LLM reasoning
+- **Services**: Data fetching, caching, database operations
+- **Database**: Ticker storage and query optimization
+- **Cache**: API response caching to reduce external API calls
+
 ## Project Structure
 
 ```
@@ -38,19 +51,6 @@ Options Trade Evaluator is an intelligent trading assistant that helps traders m
 - SQLAlchemy with AsyncPG
 - Redis for caching
 - PostgreSQL database
-
-## Architecture
-
-The application follows a microservices architecture with clear separation of concerns:
-![alt text](https://github.com/jassassin68/langchain-option-trade-builder/blob/main/images/Gemini_Generated_Image_x6k7ax6k7ax6k7ax.png)
-
-**Component Responsibilities:**
-- **Frontend**: User interface, form validation, result visualization
-- **Backend API**: Request handling, orchestration, error management
-- **LangChain Agent**: Sequential analysis workflow with LLM reasoning
-- **Services**: Data fetching, caching, database operations
-- **Database**: Ticker storage and query optimization
-- **Cache**: API response caching to reduce external API calls
 
 ## Getting Started
 
