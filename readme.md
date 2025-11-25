@@ -39,6 +39,19 @@ Options Trade Evaluator is an intelligent trading assistant that helps traders m
 - Redis for caching
 - PostgreSQL database
 
+## Architecture
+
+The application follows a microservices architecture with clear separation of concerns:
+![alt text](https://github.com/jassassin68/langchain-option-trade-builder/blob/main/images/Gemini_Generated_Image_x6k7ax6k7ax6k7ax.png)
+
+**Component Responsibilities:**
+- **Frontend**: User interface, form validation, result visualization
+- **Backend API**: Request handling, orchestration, error management
+- **LangChain Agent**: Sequential analysis workflow with LLM reasoning
+- **Services**: Data fetching, caching, database operations
+- **Database**: Ticker storage and query optimization
+- **Cache**: API response caching to reduce external API calls
+
 ## Getting Started
 
 ### Prerequisites
@@ -254,52 +267,6 @@ npm run build                            # Production build
 npm test                                 # Run tests
 npm run lint                             # Run linter
 ```
-
-## Architecture
-
-The application follows a microservices architecture with clear separation of concerns:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend (Next.js)                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │ Ticker Search│  │   Analysis   │  │    Results   │          │
-│  │  Component   │  │   Display    │  │   Display    │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTP/REST API
-┌────────────────────────────┴────────────────────────────────────┐
-│                      Backend (FastAPI)                           │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │           Options Evaluation Agent (LangChain)           │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │   │
-│  │  │Technical │ │Fundamental│ │ Options  │ │   Risk   │   │   │
-│  │  │ Analysis │→│ Screening │→│ Analysis │→│Assessment│   │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   Ticker     │  │ Market Data  │  │Options Data  │          │
-│  │   Service    │  │   Service    │  │   Service    │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-┌───────▼────────┐  ┌────────▼────────┐  ┌───────▼────────┐
-│   PostgreSQL   │  │     Redis       │  │  External APIs │
-│   (Tickers)    │  │    (Cache)      │  │ Alpha Vantage  │
-│                │  │                 │  │    Tradier     │
-└────────────────┘  └─────────────────┘  └────────────────┘
-```
-![alt text](https://github.com/jassassin68/langchain-option-trade-builder/blob/main/images/Gemini_Generated_Image_x6k7ax6k7ax6k7ax.png)
-
-**Component Responsibilities:**
-- **Frontend**: User interface, form validation, result visualization
-- **Backend API**: Request handling, orchestration, error management
-- **LangChain Agent**: Sequential analysis workflow with LLM reasoning
-- **Services**: Data fetching, caching, database operations
-- **Database**: Ticker storage and query optimization
-- **Cache**: API response caching to reduce external API calls
 
 ## Docker Commands
 
